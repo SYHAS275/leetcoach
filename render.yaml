@@ -1,0 +1,47 @@
+services:
+  # Managed PostgreSQL Database
+  - type: psql
+    name: leetcoach-db
+    env: docker
+    plan: free # Optional: specify plan type (free, starter, etc.)
+    databaseName: leetcoach
+    user: leetcoach_user
+
+  # Backend Service (FastAPI)
+  - type: web
+    name: leetcoach-backend
+    env: docker
+    rootDir: backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: leetcoach-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      - key: ALLOWED_ORIGINS
+        value: https://leetcoach-frontend.onrender.com # Will need to be updated with actual frontend URL or set to * for initial testing
+      - key: GEMINI_API_KEY
+        sync: false # User must set this in dashboard
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+  # Frontend Service (React + Nginx)
+  - type: web
+    name: leetcoach-frontend
+    env: docker
+    rootDir: frontend
+    plan: free
+    envVars:
+      - key: REACT_APP_API_BASE_URL
+        fromService:
+          type: web
+          name: leetcoach-backend
+          property: url
+      - key: REACT_APP_ENVIRONMENT
+        value: production
